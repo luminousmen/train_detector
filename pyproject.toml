@@ -1,0 +1,55 @@
+[project]
+name = "train-detector"
+version = "0.1.0"
+description = "Train detector using motion detection"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "numpy",
+    "opencv-python",
+    "python-telegram-bot",
+    "requests>=2.32.3",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=6.0.0",
+    "pytest-asyncio>=0.23.0",
+    "pytest-random-order>=1.1.0",
+    "ruff>=0.9.9",
+    "coverage>=7.6.12",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+python_files = "test_*.py"
+addopts = "--random-order --random-order-bucket=module --cov=src --cov-config=.coveragerc --cov-report=term --cov-report=html"
+
+[tool.coverage.run]
+source = ["src"]
+omit = [
+    "tests/*",
+    "*/__pycache__/*",
+    "*/site-packages/*",
+    ".venv/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "pass",
+    "raise ImportError",
+]
+
+[tool.coverage.html]
+directory = "htmlcov"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+select = ["E", "F", "I", "W"]
+ignore = []
