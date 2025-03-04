@@ -35,19 +35,6 @@ export TELEGRAM_TOKEN="your-bot-token"
 export CHAT_ID="your-chat-id"
 ```
 
-## Example Output
-
-When a train is detected, the bot sends a notification:
-
-```
-🚆 Train detected moving Left to Right!
-Time: 2025-02-27 10:00:00
-Left: Occupied
-Right: Empty
-```
-
-Examples are in the [docs/examples.md](docs/examples.md)
-
 ## Algorithm Workflow
 
 The algorithm is simple yet powerful. It minimizes false negatives but may generate some false positives. 
