@@ -1,3 +1,5 @@
+[![Run Tests](https://github.com/luminousmen/train_detector/actions/workflows/test.yml/badge.svg)](https://github.com/luminousmen/train_detector/actions/workflows/test.yml)
+
 # Train Detector
 
 It's a small Python-based motion detection system that identifies train movements using computer vision and sends notifications via Telegram. 

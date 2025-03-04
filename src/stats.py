@@ -188,8 +188,8 @@ def _format_stats_message(stats: Dict[str, Any]) -> str:
 
     # Weekly totals
     message += "Last 7 Days:\n"
-    for date, count in stats['last_7_days_counts'].items():
-        message += f"{date}: {count} trains\n"
+    for d, count in stats['last_7_days_counts'].items():
+        message += f"{d}: {count} trains\n"
     message += "\n"
 
     # Weekly average by weekday

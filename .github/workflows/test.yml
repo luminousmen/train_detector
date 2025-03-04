@@ -19,5 +19,14 @@ jobs:
           pip install uv
           uv sync --all-extras
 
+      - name: Run Ruff Linter
+        run: uv run ruff check .
+
       - name: Run tests
         run: uv run pytest --cov=src --cov-report=xml
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: ./coverage.xml

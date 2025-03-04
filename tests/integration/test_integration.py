@@ -1,4 +1,5 @@
 import json
+import os
 import time
 
 import pytest
@@ -12,46 +13,46 @@ from src.tg import TelegramBot
 
 
 @pytest.fixture
-def integrated_system():
-    """Setup the full system with all components for integration testing."""
+def test_data_file():
     data_file = Path("test_integration_detections.json")
+    if data_file.exists():
+        os.remove(data_file)
 
-    # Create a real TelegramBot instance
-    telegram_bot = TelegramBot("test_token", "test_chat_id", data_file)
+    yield data_file
 
-    # Create the TrainDetector with the real bot
+    if data_file.exists():
+        os.remove(data_file)
+
+
+@pytest.fixture
+def integrated_system(test_data_file):
+    telegram_bot = TelegramBot("test_token", "test_chat_id", test_data_file)
+
     with patch("cv2.VideoCapture") as mock_capture:
         mock_capture.return_value.read.return_value = (
             True,
             np.zeros((480, 640, 3), dtype=np.uint8),
         )
         mock_capture.return_value.set.return_value = True
+        detector = TrainDetector(test_data_file, telegram_bot)
 
-        detector = TrainDetector(data_file, telegram_bot)
-
-        # Mock file operations for both components
         with (
             patch("pathlib.Path.exists", return_value=False),
             patch("builtins.open", mock_open(read_data=json.dumps({"detections": []}))),
         ):
-            # Return the integrated components
             yield detector, telegram_bot
 
 
 def test_detection_workflow(integrated_system):
-    """Test the complete workflow from detection to notification."""
     detector, telegram_bot = integrated_system
 
-    # Mock the methods we want to verify
     telegram_bot.send_message = Mock(return_value=True)
     telegram_bot.send_photo = Mock(return_value=True)
     detector.load_data = Mock()
     detector.save_data = Mock()
     detector.data = {"detections": []}
 
-    # Mock image saving and cleanup
     with patch("cv2.imwrite") as mock_imwrite, patch("os.remove") as mock_remove:
-        # Test the detection workflow
         frame = np.zeros((480, 640, 3), dtype=np.uint8)
         detector.handle_detection(
             detected_count=1,
@@ -79,7 +80,6 @@ def test_detection_workflow(integrated_system):
 
 @pytest.mark.asyncio
 async def test_stats_generation_with_telegram(integrated_system):
-    """Test the integration between stats and telegram bot."""
     detector, telegram_bot = integrated_system
 
     # Create sample data
@@ -104,24 +104,16 @@ async def test_stats_generation_with_telegram(integrated_system):
         ]
     }
 
-    # Setup mocks
     update = AsyncMock()
     context = AsyncMock()
     update.message.reply_text = AsyncMock()
 
-    # Mock file operations
     with patch("builtins.open", mock_open(read_data=json.dumps(sample_data))):
-        # Test the stats generation via Telegram command (using await instead of asyncio.run)
         await telegram_bot.handle_stats(update, context)
-
-        # Verify the stats were sent via Telegram
         update.message.reply_text.assert_awaited_once()
 
-        # Check content of the message
         args, _ = update.message.reply_text.call_args
         message = args[0]
-
-        # Verify key statistics are included
         assert "Train Statistics Report" in message
         assert "Today" in message
         assert "Last 7 Days" in message
@@ -130,10 +122,8 @@ async def test_stats_generation_with_telegram(integrated_system):
 
 @pytest.mark.asyncio
 async def test_detection_deletion_workflow(integrated_system):
-    """Test the integration between detector data and telegram deletion."""
     detector, telegram_bot = integrated_system
 
-    # Create sample data
     sample_data = {
         "detections": [
             {
@@ -167,49 +157,35 @@ async def test_detection_deletion_workflow(integrated_system):
     # Mock file operations with side_effect to handle reading then writing
     read_mock = mock_open(read_data=json.dumps(sample_data))
     read_mock.return_value.read.return_value = json.dumps(sample_data)
-    write_mock = mock_open()
 
-    # Setup mocks for file operations
     with patch("builtins.open", read_mock), patch("json.dump") as mock_json_dump:
-        # Test the button handler (using await instead of asyncio.run)
         await telegram_bot.handle_button(update, context)
 
-        # Verify the callback was answered
         update.callback_query.answer.assert_awaited_once()
-
-        # Verify message was sent
         telegram_bot.send_message.assert_called_with(
             "❌ Marked as false detection: 2025-02-27 10:00:00"
         )
-
         # Verify data was modified and saved
         mock_json_dump.assert_called_once()
         args, _ = mock_json_dump.call_args
         modified_data = args[0]
-
         # Check that the detection was removed
         assert len(modified_data["detections"]) == 1
         assert modified_data["detections"][0]["timestamp"] == "2025-02-27 15:00:00"
 
 
 def test_train_detector_detection_logic(integrated_system):
-    """Test the train detection logic without running the infinite loop."""
     detector, telegram_bot = integrated_system
 
-    # Setup detector for testing
     detector.motion_threshold = 500
     detector.detection_cooldown = 0  # No cooldown for testing
     detector.state_change_cooldown = 0  # No cooldown for testing
     detector.handle_detection = Mock()
 
-    # Create test frames
     frame = np.zeros((480, 640, 3), dtype=np.uint8)
-
-    # Setup initial state
     detector.train_passing = False
     detector.last_detection_time = 0
 
-    # Create ROI analyzers for testing
     left_gray_empty = np.zeros((100, 100), dtype=np.uint8)
     right_gray_empty = np.zeros((100, 100), dtype=np.uint8)
     left_gray_motion = np.zeros((100, 100), dtype=np.uint8)
@@ -240,16 +216,13 @@ def test_train_detector_detection_logic(integrated_system):
     assert left_motion > detector.motion_threshold
     assert right_motion < detector.motion_threshold
 
-    # Manually test the detection logic similar to what happens in the run loop
     current_time = time.time()
-    detector.last_state_change = current_time - 10  # Ensure we're past the cooldown
-
-    # Set the state based on motion (what would happen in the run loop)
+    detector.last_state_change = current_time - 10
     left_occupied = left_motion > detector.motion_threshold
     right_occupied = right_motion > detector.motion_threshold
 
-    assert left_occupied == True
-    assert right_occupied == False
+    assert left_occupied is True
+    assert right_occupied is False
 
     # Simulate a train detection
     if left_occupied != right_occupied:  # One ROI occupied, other empty
@@ -262,12 +235,11 @@ def test_train_detector_detection_logic(integrated_system):
                 1, left_motion, right_motion, direction, left_occupied, right_occupied, frame
             )
 
-    # Check that detection happened with correct parameters
     detector.handle_detection.assert_called_once()
     args, _ = detector.handle_detection.call_args
     assert args[3] == "Left to Right"  # Direction argument
-    assert args[4] == True  # left_occupied
-    assert args[5] == False  # right_occupied
+    assert args[4] is True  # left_occupied
+    assert args[5] is False  # right_occupied
 
     # Reset for the next test
     detector.handle_detection.reset_mock()
@@ -300,7 +272,6 @@ def test_train_detector_detection_logic(integrated_system):
                 2, left_motion, right_motion, direction, left_occupied, right_occupied, frame
             )
 
-    # Check that detection happened with correct parameters
     detector.handle_detection.assert_called_once()
     args, _ = detector.handle_detection.call_args
     assert args[3] == "Right to Left"  # Direction should now be Right to Left

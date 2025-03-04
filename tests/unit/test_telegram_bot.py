@@ -8,30 +8,6 @@ from src.tg import TelegramBot
 
 
 @pytest.fixture
-def sample_data():
-    return {
-        "detections": [
-            {
-                "timestamp": "2025-02-27 10:00:00",
-                "left_motion": 1000,
-                "right_motion": 200,
-                "direction": "Left to Right",
-                "left_occupied": True,
-                "right_occupied": False,
-            },
-            {
-                "timestamp": "2025-02-27 15:00:00",
-                "left_motion": 300,
-                "right_motion": 1200,
-                "direction": "Right to Left",
-                "left_occupied": False,
-                "right_occupied": True,
-            },
-        ]
-    }
-
-
-@pytest.fixture
 def telegram_bot():
     return TelegramBot("test_token", "test_chat", Path("test_detections.json"))
 
@@ -81,8 +57,6 @@ async def test_handle_button(telegram_bot, sample_data):
     update.callback_query = AsyncMock()
     update.callback_query.data = "delete_2025-02-27 10:00:00"
     context = AsyncMock()
-
-    # Define the JSON data as a string
     json_data = json.dumps(sample_data)
 
     # Mock file operations with side_effect
@@ -147,7 +121,6 @@ def test_send_photo_failure(telegram_bot):
         mock_post.side_effect = Exception("Connection error")
 
         success = telegram_bot.send_photo("test.jpg", "caption", "timestamp")
-
         assert success is False
 
 
@@ -169,8 +142,5 @@ async def test_error_handler(telegram_bot):
     context = AsyncMock()
     context.error = Exception("Test error")
 
-    # No assertion needed, we just want to ensure it doesn't raise an exception
     await telegram_bot.error_handler(update, context)
-
-    # Test with None update
     await telegram_bot.error_handler(None, context)
