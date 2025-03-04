@@ -1,4 +1,4 @@
-[![Run Tests](https://github.com/luminousmen/train_detector/actions/workflows/test.yml/badge.svg)](https://github.com/luminousmen/train_detector/actions/workflows/test.yml)
+[![Run Tests](https://github.com/luminousmen/train_detector/actions/workflows/test.yml/badge.svg)](https://github.com/luminousmen/train_detector/actions/workflows/test.yml) [![codecov](https://codecov.io/gh/luminousmen/train_detector/graph/badge.svg?token=BMD9B5VCPZ)](https://codecov.io/gh/luminousmen/train_detector)
 
 # Train Detector
 
