@@ -5,6 +5,9 @@
 It's a small Python-based motion detection system that identifies train movements using computer vision and sends notifications via Telegram. 
 
 I run it on Raspberry Pi with an attached camera. For me, it solves the problem of gathering statistics on the passing trains—hence the name—but I believe it can be used in other cases as well. I tried to find something like this before, so I hope this will be a good starting point for someone with the same problem.
+
+Analysis of the train traffic is [here](https://nbviewer.org/github/luminousmen/train_detector/blob/master/Train_stats.ipynb)
+
 ## Installation
 
 To set up the project, ensure you have `uv` installed:
